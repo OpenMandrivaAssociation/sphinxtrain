@@ -1,4 +1,4 @@
-Name: SphinxTrain
+Name: sphinxtrain
 Version: 1.0
 Release: %mkrel 1
 Summary: An acoustic model trainer for CMU's Sphinx tools
