@@ -1,3 +1,5 @@
+%define rname SphinxTrain
+
 Name: sphinxtrain
 Version: 1.0
 Release: %mkrel 1
@@ -5,7 +7,7 @@ Summary: An acoustic model trainer for CMU's Sphinx tools
 Group: Audio
 License: BSD and LGPLv2+
 URL: http://www.cmusphinx.org/
-Source: http://downloads.sourceforge.net/cmusphinx/%{name}-%{version}.tar.bz2
+Source: http://downloads.sourceforge.net/cmusphinx/%{rname}-%{version}.tar.bz2
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}
 BuildRequires: blas-devel, festival, lapack-devel, perl, python-devel
 BuildRequires: python-setuptools, python-scipy
@@ -16,7 +18,7 @@ trainer.  It contains the scripts and instructions necessary for building
 models for the CMU Sphinx Recognizer.
 
 %prep
-%setup -q
+%setup -q -n %{rname}-%{version}
 # Remove spurious executable bits
 chmod a-x src/libs/libmllr/*.c include/s3/lexicon.h
 # Fix a typo
