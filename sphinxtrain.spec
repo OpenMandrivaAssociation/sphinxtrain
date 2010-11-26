@@ -2,7 +2,7 @@ Name: SphinxTrain
 Version: 1.0
 Release: %mkrel 1
 Summary: An acoustic model trainer for CMU's Sphinx tools
-Group: Applications/Multimedia
+Group: Audio
 License: BSD and LGPLv2+
 URL: http://www.cmusphinx.org/
 Source: http://downloads.sourceforge.net/cmusphinx/%{name}-%{version}.tar.bz2
@@ -30,11 +30,20 @@ if [[ ! $(grep -F 'PIC' config/config) ]]; then
 fi
 %make %{?_smp_mflags}
 
+mkdir -p build
+pushd build
+../scripts_pl/setup_SphinxTrain.pl -task Mandriva
+popd
+
 %install
 rm -rf %{buildroot}
 mkdir -p %{buildroot}%{_libdir}/%{name}
-cd %{buildroot}%{_libdir}/%{name}
-%{buildroot}%{name}-%{version}/scripts_pl/setup_SphinxTrain.pl -task Mandriva
+
+pushd build
+cp -a * %{buildroot}%{_libdir}/%{name}
+popd
+
+pushd %{buildroot}%{_libdir}/%{name}
 sed -e "s|\\\$CFG_BASE_DIR = .*;|\\\$CFG_BASE_DIR = \"%{_libdir}/%{name}\";|" \
     -i etc/sphinx_train.cfg
 # The installer ADDS spurious executable bits
@@ -46,6 +55,7 @@ chmod a-x python/sphinx/__init__.py python/sphinx/arpalm.py \
   python/sphinx/s3gaucnt.py python/sphinx/s3lda.py python/sphinx/s3mdef.py \
   python/sphinx/s3mixw.py python/sphinx/s3model.py python/sphinx/s3tmat.py \
   scripts_pl/lib/*.pm scripts_pl/lib/Queue/*.pm scripts_pl/lib/SphinxTrain/*.pm
+popd
 
 %clean
 rm -rf %{buildroot}
