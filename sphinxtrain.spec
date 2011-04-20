@@ -7,7 +7,7 @@ License: BSD and LGPLv2+
 URL: http://www.cmusphinx.org/
 Source: http://downloads.sourceforge.net/cmusphinx/%{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}
-BuildRequires: sphinxbase, python-devel, python-setuptools, python-scipy
+BuildRequires: sphinxbase-devel, python-devel, python-setuptools, python-scipy
 
 %description
 SphinxTrain is Carnegie Mellon University's open source acoustic model
