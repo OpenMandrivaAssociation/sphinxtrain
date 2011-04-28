@@ -1,6 +1,6 @@
 Name: sphinxtrain
 Version: 1.0.7
-Release: %mkrel 0
+Release: %mkrel 1
 Summary: An acoustic model trainer for CMU's Sphinx tools
 Group: Development/Other
 License: BSD and LGPLv2+
@@ -8,6 +8,7 @@ URL: http://www.cmusphinx.org/
 Source: http://downloads.sourceforge.net/cmusphinx/%{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}
 BuildRequires: sphinxbase-devel, python-devel, python-setuptools, python-scipy
+Patch0: sphinxtrain.patch
 
 %description
 SphinxTrain is Carnegie Mellon University's open source acoustic model
@@ -16,6 +17,7 @@ models for the CMU Sphinx Recognizer.
 
 %prep
 %setup -q
+%patch0 -p1 -b .lda
 
 %build
 %configure
