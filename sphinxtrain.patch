@@ -1,0 +1,301 @@
+diff -ur sphinxtrain-1.0.7/etc/sphinx_train.cfg SphinxTrain/etc/sphinx_train.cfg
+--- sphinxtrain-1.0.7/etc/sphinx_train.cfg	2010-10-28 02:27:24.000000000 +0400
++++ SphinxTrain/etc/sphinx_train.cfg	2011-04-28 00:39:22.000000000 +0400
+@@ -142,6 +142,14 @@
+     if ($CFG_INITIAL_NUM_DENSITIES > $CFG_FINAL_NUM_DENSITIES);
+ }
+ 
++# Number of top gaussians to score a frame. A little bit less accurate computations
++# make training significantly faster. Uncomment to apply this during the training
++# For good accuracy make sure you are using the same setting in decoder
++# In theory this can be different for various training stages. For example 4 for
++# CI stage and 16 for CD stage
++# $CFG_CI_NTOP = 4;
++# $CFG_CD_NTOP = 16;
++
+ # (yes/no) Train multiple-gaussian context-independent models (useful
+ # for alignment, use 'no' otherwise) in the models created
+ # specifically for forced alignment
+diff -ur sphinxtrain-1.0.7/scripts_pl/01.lda_train/baum_welch.pl SphinxTrain/scripts_pl/01.lda_train/baum_welch.pl
+--- sphinxtrain-1.0.7/scripts_pl/01.lda_train/baum_welch.pl	2011-04-17 14:35:38.000000000 +0400
++++ SphinxTrain/scripts_pl/01.lda_train/baum_welch.pl	2011-04-28 00:39:22.000000000 +0400
+@@ -91,12 +91,8 @@
+ my $listoffiles = $ST::CFG_LISTOFFILES;
+ my $transcriptfile = $ST::CFG_TRANSCRIPTFILE;
+ 
+-my $topn;
+-if ($ST::CFG_HMM_TYPE eq '.cont') {
+-    $topn = 1
+-} else {
+-    $topn = $ST::CFG_FINAL_NUM_DENSITIES;
+-}
++my $topn = 1;
++
+ my $logdir   = "$ST::CFG_LOG_DIR/$processname";
+ my $logfile  = "$logdir/${ST::CFG_EXPTNAME}.$iter-$part.bw.log";
+ mkdir ($logdir,0777);
+diff -ur sphinxtrain-1.0.7/scripts_pl/10.falign_ci_hmm/baum_welch.pl SphinxTrain/scripts_pl/10.falign_ci_hmm/baum_welch.pl
+--- sphinxtrain-1.0.7/scripts_pl/10.falign_ci_hmm/baum_welch.pl	2011-04-17 14:35:38.000000000 +0400
++++ SphinxTrain/scripts_pl/10.falign_ci_hmm/baum_welch.pl	2011-04-28 00:39:22.000000000 +0400
+@@ -103,10 +103,9 @@
+ $listoffiles = $ST::CFG_LISTOFFILES;
+ $transcriptfile = $ST::CFG_TRANSCRIPTFILE;
+ 
+-my $topn     = 4;
+-if ($ST::CFG_HMM_TYPE eq '.cont.' and $n_gau < 4) {
+-    $topn = $n_gau;
+-}
++my $topn = $n_gau;
++$topn = $ST::CFG_CI_TOPN if (defined($ST::CFG_CI_TOPN) and ($ST::CFG_FULLVAR eq 'no') and ($ST::CFG_CI_TOPN < $n_gau));
++
+ my $logdir   = "$ST::CFG_LOG_DIR/$processname";
+ my $logfile  = "$logdir/${ST::CFG_EXPTNAME}.${n_gau}.$iter-$part.bw.log";
+ mkdir ($logdir,0777);
+diff -ur sphinxtrain-1.0.7/scripts_pl/20.ci_hmm/baum_welch.pl SphinxTrain/scripts_pl/20.ci_hmm/baum_welch.pl
+--- sphinxtrain-1.0.7/scripts_pl/20.ci_hmm/baum_welch.pl	2011-04-17 14:35:38.000000000 +0400
++++ SphinxTrain/scripts_pl/20.ci_hmm/baum_welch.pl	2011-04-28 00:39:22.000000000 +0400
+@@ -127,10 +127,8 @@
+ # of (03.) forced alignment or (04.) VTLN
+ my ($listoffiles, $transcriptfile) = GetLists();
+ 
+-my $topn     = 4;
+-if ($ST::CFG_HMM_TYPE eq '.cont.' and $n_gau < 4) {
+-    $topn = $n_gau;
+-}
++my $topn = $n_gau;
++$topn = $ST::CFG_CI_TOPN if (defined($ST::CFG_CI_TOPN) and ($ST::CFG_FULLVAR eq 'no') and ($ST::CFG_CI_TOPN < $n_gau));
+ 
+ my $ctl_counter = 0;
+ open INPUT,"<$listoffiles" or die "Failed to open $listoffiles: $!";
+diff -ur sphinxtrain-1.0.7/scripts_pl/50.cd_hmm_tied/baum_welch.pl SphinxTrain/scripts_pl/50.cd_hmm_tied/baum_welch.pl
+--- sphinxtrain-1.0.7/scripts_pl/50.cd_hmm_tied/baum_welch.pl	2011-04-17 14:35:38.000000000 +0400
++++ SphinxTrain/scripts_pl/50.cd_hmm_tied/baum_welch.pl	2011-04-28 00:39:22.000000000 +0400
+@@ -123,21 +123,12 @@
+ # of (03.) forced alignment or (04.) VTLN
+ my ($listoffiles, $transcriptfile) = GetLists();
+ 
+-my $topn;
+-if ($iter == 1) {
+-    if ($ST::CFG_HMM_TYPE eq '.cont') {
+-	$topn = $n_gau;
+-    }
+-    else {
+-	$topn = $ST::CFG_FINAL_NUM_DENSITIES;
+-    }
+-}
+-else {
+-    $topn = 16;
+-    if ($ST::CFG_HMM_TYPE eq '.cont.' and $n_gau < 16) {
+-	$topn = $n_gau;
+-    }
+-}
++my $topn = $n_gau;
++$topn = $ST::CFG_CD_TOPN if (defined($ST::CFG_CD_TOPN) and 
++			     ($iter > 1) and 
++			     ($ST::CFG_FULLVAR eq 'no') and 
++			     ($ST::CFG_CD_TOPN < $n_gau));
++
+ my $logdir   = "$ST::CFG_LOG_DIR/$processname";
+ my $logfile  = "$logdir/${ST::CFG_EXPTNAME}.${n_gau}.$iter-$part.bw.log";
+ mkdir ($logdir,0777);
+diff -ur sphinxtrain-1.0.7/scripts_pl/65.mmie_train/baum_welch.pl SphinxTrain/scripts_pl/65.mmie_train/baum_welch.pl
+--- sphinxtrain-1.0.7/scripts_pl/65.mmie_train/baum_welch.pl	2011-04-17 14:35:38.000000000 +0400
++++ SphinxTrain/scripts_pl/65.mmie_train/baum_welch.pl	2011-04-28 00:39:22.000000000 +0400
+@@ -80,7 +80,9 @@
+ my $meanfn      = "$hmm_dir/means";
+ my $varfn       = "$hmm_dir/variances";
+ my $minvar      = 1e-4;
+-my $topn        = $ST::CFG_FINAL_NUM_DENSITIES;
++
++my $topn = $ST::CFG_FINAL_NUM_DENSITIES;
++$topn = $ST::CFG_CD_TOPN if (defined($ST::CFG_CD_TOPN) and ($ST::CFG_FULLVAR eq 'no') and ($ST::CFG_CD_TOPN < $n_gau));
+ 
+ my $mmie_type   = defined($ST::CFG_MMIE_TYPE) ? $ST::CFG_MMIE_TYPE : "rand";
+ my $lw          = defined($ST::CFG_LANGUAGEWEIGHT) ? $ST::CFG_LANGUAGEWEIGHT : "11.5";
+diff -ur sphinxtrain-1.0.7/scripts_pl/80.mllr_adapt/baum_welch.pl SphinxTrain/scripts_pl/80.mllr_adapt/baum_welch.pl
+--- sphinxtrain-1.0.7/scripts_pl/80.mllr_adapt/baum_welch.pl	2011-04-17 14:35:38.000000000 +0400
++++ SphinxTrain/scripts_pl/80.mllr_adapt/baum_welch.pl	2011-04-28 00:39:22.000000000 +0400
+@@ -83,6 +83,9 @@
+ my $varfn   = "$hmm_dir/variances";
+ my $minvar  = 1e-4;
+ 
++my $topn = $ST::CFG_FINAL_NUM_DENSITIES;
++$topn = $ST::CFG_CD_TOPN if (defined($ST::CFG_CD_TOPN) and ($ST::CFG_FULLVAR eq 'no') and ($ST::CFG_CD_TOPN < $n_gau));
++
+ # Add the MLLT transform if it exists
+ my @extra_args;
+ if (defined($ST::CFG_SVSPEC)){
+@@ -98,7 +101,6 @@
+     push(@extra_args, -viterbi => 'yes');
+ }
+ 
+-my $topn = 8;
+ my $logdir   = "$ST::CFG_LOG_DIR/$processname";
+ my $logfile  = "$logdir/${ST::CFG_EXPTNAME}.${speaker}.bw.log";
+ mkdir ($logdir,0777);
+diff -ur sphinxtrain-1.0.7/src/libs/libmodinv/mod_inv.c SphinxTrain/src/libs/libmodinv/mod_inv.c
+--- sphinxtrain-1.0.7/src/libs/libmodinv/mod_inv.c	2011-04-14 18:38:16.000000000 +0400
++++ SphinxTrain/src/libs/libmodinv/mod_inv.c	2011-04-28 00:39:22.000000000 +0400
+@@ -254,11 +254,14 @@
+     gauden_floor_variance(g);
+ 
+     if (n_top > n_density) {
+-	E_WARN("n_top %u > n_density %u.  n_top <- %u\n",
+-	       n_top, n_density, n_density);
++	E_WARN("topn %u is greater than n_density %u, using the latter\n",
++	       n_top, n_density);
+ 	gauden_set_n_top(g, n_density);
+-    }
+-    else {
++    } else if (var_is_full && n_top != n_density) {
++	E_WARN("topn %u is not supported for full covariance using the n_density %u\n",
++	       n_top, n_density);
++	gauden_set_n_top(g, n_density);
++    } else {
+ 	gauden_set_n_top(g, n_top);
+     }
+ 
+diff -ur sphinxtrain-1.0.7/src/libs/libs2io/read_seno_dtree.c SphinxTrain/src/libs/libs2io/read_seno_dtree.c
+--- sphinxtrain-1.0.7/src/libs/libs2io/read_seno_dtree.c	2010-11-02 19:15:37.000000000 +0300
++++ SphinxTrain/src/libs/libs2io/read_seno_dtree.c	2010-11-02 19:15:37.000000000 +0300
+@@ -43,7 +43,7 @@
+  * 
+  *********************************************************************/
+ 
+-static char rcsid[] = "@(#)$Id: read_seno_dtree.c 10590 2010-11-02 16:15:37Z nshmyrev $";
++static char rcsid[] = "@(#)$Id$";
+ 
+ #include <s3/read_seno_dtree.h>
+ #include <sphinxbase/ckd_alloc.h>
+diff -ur sphinxtrain-1.0.7/src/programs/bw/accum.c SphinxTrain/src/programs/bw/accum.c
+--- sphinxtrain-1.0.7/src/programs/bw/accum.c	2011-04-17 15:17:11.000000000 +0400
++++ SphinxTrain/src/programs/bw/accum.c	2011-04-28 01:16:29.000000000 +0400
+@@ -210,7 +210,7 @@
+     float32 obs_cnt;
+ 
+     /* Apply LDA if desired. */
+-    if (fcb->lda) {
++    if (fcb->lda && cmd_ln_boolean("-ldaaccum")) {
+         feat_lda_transform(fcb, &frame, 1);
+     }
+ 
+@@ -979,8 +979,6 @@
+ 	return S3_SUCCESS;
+ }
+ 
+-/* the following functions are used for MMIE training
+-   lqin 2010-03*/
+ int
+ mmi_accum_gauden(float32 ***denacc,
+ 		 uint32 *lcl2gbl,
+@@ -1004,14 +1002,6 @@
+   float32 ***dnom = g->l_dnom;
+   
+   float32 obs_cnt;
+-  
+-  /* Apply LDA if desired. */
+-  if (fcb->lda) {
+-    /* Note that we ignore -ldadim here, because it's rather
+-     * complicated to change the length of veclen for the
+-     * output only. */
+-    feat_lda_transform(fcb, &frame, 1);
+-  }
+ 
+   /* for each density family found in the utterance */
+   for (i = 0; i < n_lcl2gbl; i++) {
+diff -ur sphinxtrain-1.0.7/src/programs/bw/main.c SphinxTrain/src/programs/bw/main.c
+--- sphinxtrain-1.0.7/src/programs/bw/main.c	2011-04-17 15:51:48.000000000 +0400
++++ SphinxTrain/src/programs/bw/main.c	2011-04-28 01:16:29.000000000 +0400
+@@ -205,7 +205,7 @@
+     *out_feat = feat;
+ 
+ 
+-    if (cmd_ln_str("-lda") && !cmd_ln_boolean("-ldaaccum")) {
++    if (cmd_ln_str("-lda")) {
+         E_INFO("Reading linear feature transformation from %s\n",
+                cmd_ln_str("-lda"));
+         if (feat_read_lda(feat,
+@@ -593,7 +593,6 @@
+ 				 * from cepstra */
+     state_t *state_seq;		/* sentence HMM state sequence for the
+ 				   utterance */
+-    float32 ***lda = NULL;
+     uint32 n_state = 0;	/* # of sentence HMM states */
+     float64 total_log_lik;	/* total log liklihood over corpus */
+     float64 log_lik;		/* log liklihood for an utterance */
+@@ -679,14 +678,6 @@
+     pdumpdir = cmd_ln_str("-pdumpdir");
+     in_veclen = cmd_ln_int32("-ceplen");
+ 
+-    if (cmd_ln_str("-lda") && cmd_ln_boolean("-ldaaccum")) {
+-	/* Read in an LDA matrix for accumulation. */
+-	feat_read_lda(feat, 
+-		      cmd_ln_str("-lda"), 
+-		      cmd_ln_int32("-ldadim"));
+-	lda = feat->lda;
+-    }
+-
+     if (cmd_ln_str("-ckptintv")) {
+ 	ckpt_intv = cmd_ln_int32("-ckptintv");
+     }
+@@ -732,6 +723,7 @@
+     printf("\t... timing info ... \n");
+ 
+     n_utt = 0;
++
+     while (corpus_next_utt()) {
+ 	/* Zero timers before utt processing begins */
+ 	if (utt_timer) {
+@@ -794,9 +786,20 @@
+ 	}
+ 
+ 	svd_n_frame = n_frame;
+-	
+-	f = feat_array_alloc(feat, n_frame + feat_window_size(feat));
+-	feat_s2mfc2feat_live(feat, mfcc, &n_frame, TRUE, TRUE, f);
++
++	/* Hack to not apply the LDA, it will be applied later during accum_dir
++	 * Pretty useless thing to be honest, what to do with CMN after that for example?
++	 */
++        if (cmd_ln_boolean("-ldaaccum")) {
++    	    float32 ***lda = feat->lda;
++	    feat->lda = NULL;
++	    f = feat_array_alloc(feat, n_frame + feat_window_size(feat));
++    	    feat_s2mfc2feat_live(feat, mfcc, &n_frame, TRUE, TRUE, f);
++	    feat->lda = lda;
++	} else {
++	    f = feat_array_alloc(feat, n_frame + feat_window_size(feat));
++    	    feat_s2mfc2feat_live(feat, mfcc, &n_frame, TRUE, TRUE, f);
++	}
+ 
+ 	printf(" %4u", n_frame - svd_n_frame);
+ 
+@@ -1036,8 +1039,6 @@
+ 	E_INFO("Counts NOT saved.\n");
+ 
+     mod_inv_free(inv);
+-    if (lda)
+-	ckd_free_3d((void ***)lda);
+ }
+ 
+ /* the following functions are used for MMIE training
+@@ -1670,7 +1671,7 @@
+   in_veclen = cmd_ln_int32("-ceplen");
+   
+   /* Read in an LDA matrix for accumulation. */
+-  if (cmd_ln_str("-lda") && cmd_ln_boolean("-ldaaccum")) {
++  if (cmd_ln_str("-lda")) {
+ 	feat_read_lda(feat, cmd_ln_str("-lda"), 
+ 			    cmd_ln_int32("-ldadim"));
+ 	lda = feat->lda;
+diff -ur sphinxtrain-1.0.7/src/programs/mk_mdef_gen/mk_mdef_gen.c SphinxTrain/src/programs/mk_mdef_gen/mk_mdef_gen.c
+--- sphinxtrain-1.0.7/src/programs/mk_mdef_gen/mk_mdef_gen.c	2011-03-17 00:24:07.000000000 +0300
++++ SphinxTrain/src/programs/mk_mdef_gen/mk_mdef_gen.c	2011-04-28 00:39:22.000000000 +0400
+@@ -465,7 +465,7 @@
+     if ((fp = fopen(transfile,"r")) == NULL)
+ 	E_FATAL("Unable to open transcript file %s for reading!\n",transfile);
+ 
+-    E_WARN("Out of vocabulary words in transcript will be mapped to SIL!\n");
++    E_INFO("Out of vocabulary words in transcript will be mapped to SIL!\n");
+ 
+     lphnhash = (phnhashelement_t**)calloc(PHNHASHSIZE,sizeof(phnhashelement_t));
