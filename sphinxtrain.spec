@@ -1,6 +1,6 @@
 Name:     sphinxtrain
 Version:  1.0.7
-Release:  3
+Release:  4
 Summary:  An acoustic model trainer for CMU's Sphinx tools
 Group:    Development/Other
 License:  BSD and LGPLv2+
