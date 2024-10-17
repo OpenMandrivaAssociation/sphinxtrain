@@ -4,7 +4,7 @@ Release:  4
 Summary:  An acoustic model trainer for CMU's Sphinx tools
 Group:    Development/Other
 License:  BSD and LGPLv2+
-URL:      http://www.cmusphinx.org/
+URL:      https://www.cmusphinx.org/
 Source:   http://downloads.sourceforge.net/cmusphinx/%{name}-%{version}.tar.gz
 Requires: sphinxbase
 BuildRequires: sphinxbase-devel
