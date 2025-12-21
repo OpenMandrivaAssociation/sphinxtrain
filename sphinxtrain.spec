@@ -7,6 +7,11 @@ License:  BSD and LGPLv2+
 URL:      https://www.cmusphinx.org/
 Source:   http://downloads.sourceforge.net/cmusphinx/%{name}-%{version}.tar.gz
 Requires: sphinxbase
+BuildRequires:	autoconf
+BuildRequires:	automake
+BuildRequires:	libtool-base
+BuildRequires:	slibtool
+BuildRequires:	make
 BuildRequires: sphinxbase-devel
 BuildRequires: python-devel
 BuildRequires: python-setuptools
